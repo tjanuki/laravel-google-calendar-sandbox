@@ -9,6 +9,7 @@ export default defineConfig({
                 ...refreshPaths,
                 'app/Livewire/**/*.php',
                 'app/Filament/**/*.php',
+                'resources/views/**/*.php',
             ],
         }),
     ],
