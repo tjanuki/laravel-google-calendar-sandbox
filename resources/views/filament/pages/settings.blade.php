@@ -1,4 +1,3 @@
-@vite('filament-panels')
 <x-filament-panels::page>
-    hello
+    <a href="{{ route('auth.redirect') }}" >Auth</a>
 </x-filament-panels::page>

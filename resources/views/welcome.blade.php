@@ -87,6 +87,8 @@
             if (resp.error !== undefined) {
                 throw (resp);
             }
+            console.log("Access Token:", resp.access_token);
+
             document.getElementById('signout_button').style.visibility = 'visible';
             document.getElementById('authorize_button').innerText = 'Refresh';
             await listUpcomingEvents();
