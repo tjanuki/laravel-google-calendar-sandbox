@@ -42,3 +42,15 @@ Route::get('/auth/callback', function () {
 
     return 'success!';
 })->name('auth.callback');
+
+Route::get('/calendars', function () {
+    $user = auth()->user();
+
+    $client = new \Google_Client();
+    $client->setAccessToken($user->oauthToken->token);
+    $service = new \Google_Service_Calendar($client);
+
+    $calendarList = $service->calendarList->listCalendarList();
+
+    dd($calendarList->getItems());
+});
