@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\OAuthToken;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -21,13 +22,23 @@ Route::get('/auth', function () {
 
 Route::get('/auth/redirect', function () {
     return Socialite::driver('google')
-        ->scopes(['https://www.googleapis.com/auth/calendar.readonly'])
+        ->scopes(['https://www.googleapis.com/auth/calendar'])
         ->redirect();
 })->name('auth.redirect');
 
 Route::get('/auth/callback', function () {
     $user = Socialite::driver('google')->user();
 
-    dd($user);
-    return $user;
+    $loginUser = auth()->user();
+
+    OAuthToken::updateOrCreate(
+        ['user_id' => $loginUser->id, 'provider' => 'google'],
+        [
+            'token' => $user->token,
+            'refresh_token' => $user->refreshToken, // Might be null
+            'expires_at' => now()->addSeconds($user->expiresIn),
+        ]
+    );
+
+    return 'success!';
 })->name('auth.callback');
