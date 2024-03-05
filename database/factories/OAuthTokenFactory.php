@@ -17,7 +17,11 @@ class OAuthTokenFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'user_id' => \App\Models\User::factory(),
+            'provider' => 'google',
+            'token' => $this->faker->sha256,
+            'refresh_token' => $this->faker->sha256,
+            'expires_at' => $this->faker->dateTime,
         ];
     }
 }
