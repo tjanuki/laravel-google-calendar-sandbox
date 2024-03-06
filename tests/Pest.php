@@ -11,9 +11,12 @@
 |
 */
 
+use Illuminate\Foundation\Testing\DatabaseTransactions;
+
 uses(
     Tests\TestCase::class,
     // Illuminate\Foundation\Testing\RefreshDatabase::class,
+    DatabaseTransactions::class
 )->in('Feature');
 
 /*

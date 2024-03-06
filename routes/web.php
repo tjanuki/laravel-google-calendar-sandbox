@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\OAuthToken;
+use App\Services\GoogleCalendarService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Facades\Socialite;
@@ -59,35 +60,16 @@ Route::get('/calendars', function () {
 Route::get('/calendars/create', function () {
     $user = auth()->user();
 
-    $client = new \Google_Client();
-    $client->setAccessToken($user->oauthToken->token);
-    $service = new \Google_Service_Calendar($client);
-
-    $startDateTime = Carbon::create(2024, 3, 3, 9, 0, 0, 'Asia/Tokyo');
-    $endDateTime = Carbon::create(2024, 3, 3, 17, 0, 0, 'Asia/Tokyo');
-
-    $event = new Google_Service_Calendar_Event(array(
+    $eventData = [
+        'calendar_id' => 'primary', // 'primary' is the default calendar ID for the user
         'summary' => 'Google I/O 2025',
-        'location' => '800 Howard St., San Francisco, CA 94103',
         'description' => 'A chance to hear more about Google\'s developer products.',
-        'start' => array(
-            'dateTime' => $startDateTime->toRfc3339String(),
-            'timeZone' => $startDateTime->getTimezone()->getName(),
-        ),
-        'end' => array(
-            'dateTime' => $endDateTime->toRfc3339String(),
-            'timeZone' => $endDateTime->getTimezone()->getName(),
-        ),
-        'reminders' => array(
-            'useDefault' => FALSE,
-            'overrides' => array(
-                array('method' => 'popup', 'minutes' => 10),
-            ),
-        ),
-    ));
+        'start' => now()->timezone('Asia/Tokyo')->addHours(1),
+        'end' => now()->timezone('Asia/Tokyo')->addHours(2),
+    ];
 
-    $calendarId = 'primary';
-    $event = $service->events->insert($calendarId, $event);
+    $googleCalendarService = app(GoogleCalendarService::class);
+    $event = $googleCalendarService->createEvent($user, $eventData);
 
     dd($event);
 });
