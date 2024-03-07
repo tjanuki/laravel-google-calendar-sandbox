@@ -25,6 +25,7 @@ Route::get('/auth', function () {
 Route::get('/auth/redirect', function () {
     return Socialite::driver('google')
         ->scopes(['https://www.googleapis.com/auth/calendar'])
+        ->with(['access_type' => 'offline', 'prompt' => 'consent'])
         ->redirect();
 })->name('auth.redirect');
 
