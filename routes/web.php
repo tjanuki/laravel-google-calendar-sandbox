@@ -34,12 +34,21 @@ Route::get('/auth/callback', function () {
 
     $loginUser = auth()->user();
 
+    // Prepare the token array as expected by Google_Client
+    $currentTime = now();
+    $tokenDetails = [
+        'access_token' => $user->token,
+        'refresh_token' => $user->refreshToken, // Might be null, handle accordingly
+        'expires_in' => $user->expiresIn,
+        'created' => now()->getTimestamp() // Capture the current timestamp as 'created'
+    ];
+
     OAuthToken::updateOrCreate(
         ['user_id' => $loginUser->id, 'provider' => 'google'],
         [
-            'token' => $user->token,
+            'token' => json_encode($tokenDetails), // Save the full token details as a JSON string
             'refresh_token' => $user->refreshToken, // Might be null
-            'expires_at' => now()->addSeconds($user->expiresIn),
+            'expires_at' => $currentTime->addSeconds($user->expiresIn),
         ]
     );
 
@@ -49,8 +58,35 @@ Route::get('/auth/callback', function () {
 Route::get('/calendars', function () {
     $user = auth()->user();
 
+    $oauthToken = $user->oauthToken;
+
     $client = new \Google_Client();
-    $client->setAccessToken($user->oauthToken->token);
+    $client->setClientId(config('services.google.client_id'));
+    $client->setClientSecret(config('services.google.client_secret'));
+    $tokenArray = json_decode($oauthToken->token, true);
+    $client->setAccessToken($tokenArray);
+
+
+    // Check if the access token is expired.
+    if ($client->isAccessTokenExpired()) {
+        // Refresh the token if possible
+        if ($client->getRefreshToken()) {
+            $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
+            $newAccessToken = $client->getAccessToken();
+            logger(__METHOD__ . ': hoge:$newAccessToken ' . var_export($newAccessToken, true));
+
+
+            $oauthToken->token = json_encode($newAccessToken);
+            $oauthToken->refresh_token = $newAccessToken['refresh_token'] ?? $oauthToken->refresh_token;
+            $oauthToken->expires_at = Carbon::now()->addSeconds($newAccessToken['expires_in']);
+            $oauthToken->save();
+        } else {
+            // Here you should handle the case where a refresh token is not available
+            // This may involve redirecting the user to re-authenticate
+            return redirect()->route('auth.redirect');
+        }
+    }
+
     $service = new \Google_Service_Calendar($client);
 
     $calendarList = $service->calendarList->listCalendarList();
