@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\GoogleCalendarEvent;
 use App\Models\User;
+use Carbon\Carbon;
 use Google_Client;
 use Google_Service_Calendar_Event;
 
@@ -12,14 +13,10 @@ class GoogleCalendarService
 
     private $client;
 
-    public function __construct(Google_Client $client = null)
+    public function createEvent(Google_Client $client, User $user, array $eventData) : GoogleCalendarEvent
     {
-        $this->client = $client ?: new Google_Client();
-    }
-    public function createEvent(User $user, array $eventData) : GoogleCalendarEvent
-    {
-        $this->client->setAccessToken($user->oauthToken->token);
-        $service = new \Google_Service_Calendar($this->client);
+
+        $service = new \Google_Service_Calendar($client);
 
         $startDateTime = $eventData['start'];
         $endDateTime = $eventData['end'];
@@ -52,5 +49,16 @@ class GoogleCalendarService
             'start' => $event->getStart()->getDateTime(),
             'end' => $event->getEnd()->getDateTime()
         ]);
+    }
+
+    public function findEvent(Google_Client $client, User $user) : Google_Service_Calendar_Event
+    {
+        $service = new \Google_Service_Calendar($client);
+        $googleCalendarEvent = $user->googleCalendarEvents()->first();
+
+        return $service->events->get(
+            $googleCalendarEvent->google_calendar_id,
+            $googleCalendarEvent->google_event_id
+        );
     }
 }

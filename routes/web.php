@@ -2,6 +2,7 @@
 
 use App\Models\OAuthToken;
 use App\Services\GoogleCalendarService;
+use App\Services\GoogleClientService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Facades\Socialite;
@@ -56,46 +57,23 @@ Route::get('/auth/callback', function () {
 })->name('auth.callback');
 
 Route::get('/calendars', function () {
-    $user = auth()->user();
+    try {
+        $client = app(GoogleClientService::class)->initializeGoogleClient(auth()->user());
+        $service = new \Google_Service_Calendar($client);
 
-    $oauthToken = $user->oauthToken;
+        $calendarList = $service->calendarList->listCalendarList();
 
-    $client = new \Google_Client();
-    $client->setClientId(config('services.google.client_id'));
-    $client->setClientSecret(config('services.google.client_secret'));
-    $tokenArray = json_decode($oauthToken->token, true);
-    $client->setAccessToken($tokenArray);
-
-
-    // Check if the access token is expired.
-    if ($client->isAccessTokenExpired()) {
-        // Refresh the token if possible
-        if ($client->getRefreshToken()) {
-            $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-            $newAccessToken = $client->getAccessToken();
-            logger(__METHOD__ . ': hoge:$newAccessToken ' . var_export($newAccessToken, true));
-
-
-            $oauthToken->token = json_encode($newAccessToken);
-            $oauthToken->refresh_token = $newAccessToken['refresh_token'] ?? $oauthToken->refresh_token;
-            $oauthToken->expires_at = Carbon::now()->addSeconds($newAccessToken['expires_in']);
-            $oauthToken->save();
-        } else {
-            // Here you should handle the case where a refresh token is not available
-            // This may involve redirecting the user to re-authenticate
-            return redirect()->route('auth.redirect');
-        }
+        dd($calendarList->getItems());
+    } catch (\Exception $e) {
+        dd($e->getMessage());
     }
-
-    $service = new \Google_Service_Calendar($client);
-
-    $calendarList = $service->calendarList->listCalendarList();
-
-    dd($calendarList->getItems());
 });
 
 Route::get('/calendars/create', function () {
+
+
     $user = auth()->user();
+    $client = app(GoogleClientService::class)->initializeGoogleClient($user);
 
     $eventData = [
         'calendar_id' => 'primary', // 'primary' is the default calendar ID for the user
@@ -104,18 +82,24 @@ Route::get('/calendars/create', function () {
         'start' => now()->timezone('Asia/Tokyo')->addHours(1),
         'end' => now()->timezone('Asia/Tokyo')->addHours(2),
     ];
-
-    $googleCalendarService = app(GoogleCalendarService::class);
-    $event = $googleCalendarService->createEvent($user, $eventData);
+    $event = app(GoogleCalendarService::class)->createEvent($client, $user, $eventData);
 
     dd($event);
 });
 
 Route::get('/calendars/find', function () {
     $user = auth()->user();
+    $client = app(GoogleClientService::class)->initializeGoogleClient($user);
 
-    $client = new \Google_Client();
-    $client->setAccessToken($user->oauthToken->token);
+    $event = app(GoogleCalendarService::class)->findEvent($client, $user);
+
+    dd($event);
+});
+
+Route::get('/calendars/delete', function () {
+    $user = auth()->user();
+    $client = app(GoogleClientService::class)->initializeGoogleClient($user);
+
     $service = new \Google_Service_Calendar($client);
 
     $startDateTime = Carbon::create(2024, 3, 3, 9, 0, 0, 'Asia/Tokyo');
