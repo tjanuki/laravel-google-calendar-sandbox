@@ -70,8 +70,6 @@ Route::get('/calendars', function () {
 });
 
 Route::get('/calendars/create', function () {
-
-
     $user = auth()->user();
     $client = app(GoogleClientService::class)->initializeGoogleClient($user);
 
@@ -96,47 +94,11 @@ Route::get('/calendars/find', function () {
     dd($event);
 });
 
-Route::get('/calendars/delete', function () {
+Route::get('/calendars/delete/{googleEventId}', function () {
     $user = auth()->user();
     $client = app(GoogleClientService::class)->initializeGoogleClient($user);
 
-    $service = new \Google_Service_Calendar($client);
+    app(GoogleCalendarService::class)->deleteEvent($client, $user, request('googleEventId'));
 
-    $startDateTime = Carbon::create(2024, 3, 3, 9, 0, 0, 'Asia/Tokyo');
-    $endDateTime = Carbon::create(2024, 3, 3, 17, 0, 0, 'Asia/Tokyo');
-
-    $calendarId = 'primary';
-    $optParams = array(
-        'timeMin' => $startDateTime->toRfc3339String(), // Start of your date/time range in RFC3339 format
-        'timeMax' => $endDateTime->toRfc3339String(), // End of your date/time range in RFC3339 format
-        'singleEvents' => true,
-        'orderBy' => 'startTime',
-    );
-    $events = $service->events->listEvents($calendarId, $optParams);
-
-    $matchedEventId = null;
-
-    foreach ($events->getItems() as $event) {
-        $eventStart = $event->start->dateTime;
-        $eventEnd = $event->end->dateTime;
-
-        $eventStartTokyo = Carbon::parse($eventStart)->timezone('Asia/Tokyo')->toRfc3339String();
-        $eventEndTokyo = Carbon::parse($eventEnd)->timezone('Asia/Tokyo')->toRfc3339String();
-
-        if ($eventStartTokyo == $startDateTime->toRfc3339String()
-            && $eventEndTokyo == $endDateTime->toRfc3339String()
-        ) {
-            $matchedEventId = $event->getId();
-            break; // Exit the loop once a matching event is found
-        }
-    }
-
-    if ($matchedEventId) {
-        $service->events->delete($calendarId, $matchedEventId);
-        return response()->json(['success' => true, 'message' => 'Event deleted successfully.']);
-
-    } else {
-        // No matching event found
-        return "No event found with the specified start and end times.";
-    }
+    return 'Event deleted!';
 });

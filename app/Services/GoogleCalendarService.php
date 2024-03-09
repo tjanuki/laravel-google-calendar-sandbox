@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\GoogleCalendarEvent;
 use App\Models\User;
-use Carbon\Carbon;
 use Google_Client;
 use Google_Service_Calendar_Event;
 
@@ -13,7 +12,7 @@ class GoogleCalendarService
 
     private $client;
 
-    public function createEvent(Google_Client $client, User $user, array $eventData) : GoogleCalendarEvent
+    public function createEvent(Google_Client $client, User $user, array $eventData): GoogleCalendarEvent
     {
 
         $service = new \Google_Service_Calendar($client);
@@ -51,7 +50,7 @@ class GoogleCalendarService
         ]);
     }
 
-    public function findEvent(Google_Client $client, User $user) : Google_Service_Calendar_Event
+    public function findEvent(Google_Client $client, User $user): Google_Service_Calendar_Event
     {
         $service = new \Google_Service_Calendar($client);
         $googleCalendarEvent = $user->googleCalendarEvents()->first();
@@ -60,5 +59,18 @@ class GoogleCalendarService
             $googleCalendarEvent->google_calendar_id,
             $googleCalendarEvent->google_event_id
         );
+    }
+
+    public function deleteEvent(Google_Client $client, User $user, string $googleEventId): void
+    {
+        $service = new \Google_Service_Calendar($client);
+        $googleCalendarEvent = $user->googleCalendarEvents()->where('google_event_id', $googleEventId)->first();
+
+        $service->events->delete(
+            $googleCalendarEvent->google_calendar_id,
+            $googleCalendarEvent->google_event_id
+        );
+
+        $googleCalendarEvent->delete();
     }
 }
