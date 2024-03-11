@@ -10,35 +10,32 @@ use Google_Service_Calendar_Event;
 class GoogleCalendarService
 {
 
-    private $client;
-
     public function createEvent(Google_Client $client, User $user, array $eventData): GoogleCalendarEvent
     {
-
-        $service = new \Google_Service_Calendar($client);
-
         $startDateTime = $eventData['start'];
         $endDateTime = $eventData['end'];
 
-        $event = new Google_Service_Calendar_Event(array(
+        $event = new Google_Service_Calendar_Event([
+            'calendar_id' => $eventData['calendar_id'] ?? 'primary',
             'summary' => $eventData['summary'],
             'description' => $eventData['description'],
-            'start' => array(
+            'start' => [
                 'dateTime' => $startDateTime->toRfc3339String(),
                 'timeZone' => $startDateTime->getTimezone()->getName(),
-            ),
-            'end' => array(
+            ],
+            'end' => [
                 'dateTime' => $endDateTime->toRfc3339String(),
                 'timeZone' => $endDateTime->getTimezone()->getName(),
-            ),
-            'reminders' => array(
-                'useDefault' => FALSE,
-                'overrides' => array(
-                    array('method' => 'popup', 'minutes' => 10),
-                ),
-            ),
-        ));
+            ],
+            'reminders' => [
+                'useDefault' => True,
+                'overrides' => [
+                    ['method' => 'popup', 'minutes' => 10],
+                ],
+            ],
+        ]);
 
+        $service = new \Google_Service_Calendar($client);
         $event = $service->events->insert($eventData['calendar_id'], $event);
 
         return $user->googleCalendarEvents()->create([

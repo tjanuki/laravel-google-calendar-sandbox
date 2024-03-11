@@ -74,7 +74,6 @@ Route::get('/calendars/create', function () {
     $client = app(GoogleClientService::class)->initializeGoogleClient($user);
 
     $eventData = [
-        'calendar_id' => 'primary', // 'primary' is the default calendar ID for the user
         'summary' => 'Google I/O 2025',
         'description' => 'A chance to hear more about Google\'s developer products.',
         'start' => now()->timezone('Asia/Tokyo')->addHours(1),
