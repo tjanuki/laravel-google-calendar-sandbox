@@ -6,6 +6,10 @@ use App\Models\User;
 
 class GoogleClientService
 {
+    public function __construct(\Google_Client $client = null)
+    {
+        $this->client = $client ?? new \Google_Client();
+    }
 
     /**
      * @throws \Exception
@@ -14,19 +18,18 @@ class GoogleClientService
     {
         $oauthToken = $user->oauthToken;
 
-        $client = new \Google_Client();
-        $client->setClientId(config('services.google.client_id'));
-        $client->setClientSecret(config('services.google.client_secret'));
+        $this->client->setClientId(config('services.google.client_id'));
+        $this->client->setClientSecret(config('services.google.client_secret'));
         $tokenArray = json_decode($oauthToken->token, true);
-        $client->setAccessToken($tokenArray);
+        $this->client->setAccessToken($tokenArray);
 
-        if ($client->isAccessTokenExpired() && $client->getRefreshToken()) {
-            $this->refreshAccessToken($client, $oauthToken);
-        } elseif ($client->isAccessTokenExpired()) {
+        if ($this->client->isAccessTokenExpired() && $this->client->getRefreshToken()) {
+            $this->refreshAccessToken($this->client, $oauthToken);
+        } elseif ($this->client->isAccessTokenExpired()) {
             throw new \Exception('Access token expired and refresh token not available.');
         }
 
-        return $client;
+        return $this->client;
     }
 
     public function refreshAccessToken(\Google_Client $client, $oauthToken): void
