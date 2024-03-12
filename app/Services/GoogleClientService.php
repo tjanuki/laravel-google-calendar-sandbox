@@ -6,6 +6,8 @@ use App\Models\User;
 
 class GoogleClientService
 {
+    private \Google_Client $client;
+
     public function __construct(\Google_Client $client = null)
     {
         $this->client = $client ?? new \Google_Client();
