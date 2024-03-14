@@ -2,27 +2,60 @@
 
 use App\Models\User;
 use App\Services\GoogleClientService;
+use Mockery\MockInterface;
 
-beforeEach(function () {
-    $this->user = User::factory()->create();
-    $this->googleClientMock = $this->createMock(\Google_Client::class);
-    $this->googleClientMock->method('setAccessToken')->with($this->callback(function ($token) {
-        return $token['access_token'] === 'fake_access_token';
-    }));
-    $this->googleClientMock->method('isAccessTokenExpired')->willReturn(false);
-
-    $this->googleClientService = new GoogleClientService($this->googleClientMock);
-});
 
 it('initializes Google client with valid token', function () {
+    $googleClientMock = $this->mock(\Google_Client::class, function (MockInterface $mock) {
+        $mock->shouldReceive('setClientId')->with(config('services.google.client_id'));
+        $mock->shouldReceive('setClientSecret')->with(config('services.google.client_secret'));
+        $mock->shouldReceive('setAccessToken')->with(['access_token' => 'fake_access_token', 'expires_in' => 3600]);
+        $mock->shouldReceive('isAccessTokenExpired')->andReturn(false);
+    });
+
+    $googleClientService = new GoogleClientService($googleClientMock);
+
     $oauthToken = json_encode(['access_token' => 'fake_access_token', 'expires_in' => 3600]);
     $user = User::factory()->has(\App\Models\OAuthToken::factory([
         'token' => $oauthToken
     ]))->create();
 
 
-    $client = $this->googleClientService->initializeGoogleClient($user);
+    $client = $googleClientService->initializeGoogleClient($user);
 
     // prettier-ignore
     expect($client)->toBeInstanceOf(\Google_Client::class);
+});
+
+it('refreshes access token', function () {
+    $googleClientMock = $this->mock(\Google_Client::class, function (MockInterface $mock) {
+        $mock->shouldReceive('fetchAccessTokenWithRefreshToken')->with('fake_refresh_token')->andReturn([
+            'access_token' => 'new_access_token',
+            'refresh_token' => 'new_refresh_token',
+            'expires_in' => 3600
+        ]);
+        $mock->shouldReceive('getAccessToken')->andReturn([
+            'access_token' => 'new_access_token',
+            'refresh_token' => 'new_refresh_token',
+            'expires_in' => 3600
+        ]);
+        $mock->shouldReceive('getRefreshToken')->andReturn('fake_refresh_token');
+    });
+
+
+    $googleClientService = new GoogleClientService($googleClientMock);
+
+    $oauthToken = json_encode(['access_token' => 'fake_access_token', 'refresh_token' => 'fake_refresh_token', 'expires_in' => 3600]);
+    $user = User::factory()->has(\App\Models\OAuthToken::factory([
+        'token' => $oauthToken
+    ]))->create();
+
+    $googleClientService->refreshAccessToken($googleClientMock, $user->oauthToken);
+
+    $user->refresh();
+
+    // prettier-ignore
+    expect($user->oauthToken->token)->toBe('{"access_token":"new_access_token","refresh_token":"new_refresh_token","expires_in":3600}')
+        ->and($user->oauthToken->refresh_token)->toBe('new_refresh_token')
+        ->and($user->oauthToken->expires_at)->toBe(now()->addSeconds(3600)->toDateTimeString());
 });
