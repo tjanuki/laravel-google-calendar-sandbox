@@ -13,7 +13,11 @@ it('initializes Google client with valid token', function () {
         $mock->shouldReceive('isAccessTokenExpired')->andReturn(false);
     });
 
-    $googleClientService = new GoogleClientService($googleClientMock);
+    app()->bind(\Google_Client::class, function () use ($googleClientMock) {
+        return $googleClientMock;
+    });
+
+    $googleClientService = app(GoogleClientService::class);
 
     $oauthToken = json_encode(['access_token' => 'fake_access_token', 'expires_in' => 3600]);
     $user = User::factory()->has(\App\Models\OAuthToken::factory([
@@ -43,7 +47,11 @@ it('refreshes access token', function () {
     });
 
 
-    $googleClientService = new GoogleClientService($googleClientMock);
+    app()->bind(\Google_Client::class, function () use ($googleClientMock) {
+        return $googleClientMock;
+    });
+
+    $googleClientService = app(GoogleClientService::class);
 
     $oauthToken = json_encode(['access_token' => 'fake_access_token', 'refresh_token' => 'fake_refresh_token', 'expires_in' => 3600]);
     $user = User::factory()->has(\App\Models\OAuthToken::factory([
