@@ -10,6 +10,22 @@ use Google_Service_Calendar_Event;
 class GoogleCalendarService
 {
 
+
+    public function __construct(private readonly Google_Client $client)
+    {
+    }
+
+    public function findEvent(User $user): Google_Service_Calendar_Event
+    {
+        $service = new \Google_Service_Calendar($this->client);
+        $googleCalendarEvent = $user->googleCalendarEvents()->first();
+
+        return $service->events->get(
+            $googleCalendarEvent->google_calendar_id,
+            $googleCalendarEvent->google_event_id
+        );
+    }
+
     public function createEvent(Google_Client $client, User $user, array $eventData): GoogleCalendarEvent
     {
         $startDateTime = $eventData['start'];
@@ -35,7 +51,7 @@ class GoogleCalendarService
             ],
         ]);
 
-        $service = new \Google_Service_Calendar($client);
+        $service = new \Google_Service_Calendar($this->client);
         $event = $service->events->insert($eventData['calendar_id'], $event);
 
         return $user->googleCalendarEvents()->create([
@@ -47,22 +63,11 @@ class GoogleCalendarService
         ]);
     }
 
-    public function findEvent(Google_Client $client, User $user): Google_Service_Calendar_Event
-    {
-        $service = new \Google_Service_Calendar($client);
-        $googleCalendarEvent = $user->googleCalendarEvents()->first();
-
-        return $service->events->get(
-            $googleCalendarEvent->google_calendar_id,
-            $googleCalendarEvent->google_event_id
-        );
-    }
-
     public function deleteEvent(Google_Client $client, User $user, string $googleEventId): void
     {
-        $service = new \Google_Service_Calendar($client);
         $googleCalendarEvent = $user->googleCalendarEvents()->where('google_event_id', $googleEventId)->first();
 
+        $service = new \Google_Service_Calendar($this->client);
         $service->events->delete(
             $googleCalendarEvent->google_calendar_id,
             $googleCalendarEvent->google_event_id
