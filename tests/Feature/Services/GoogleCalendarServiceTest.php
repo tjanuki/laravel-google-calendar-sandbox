@@ -98,7 +98,7 @@ it('creates a Google CalendarEvent', function () {
 
     $user = User::factory()->create();
 
-    $event = $googleCalendarService->createEvent($googleClientMock, $user, [
+    $event = $googleCalendarService->createEvent($user, [
         'calendar_id' => 'primary',
         'summary' => 'fake_summary',
         'description' => 'fake_description',
@@ -146,7 +146,7 @@ it('deletes an event', function () {
 
     $user = User::factory()->has(\App\Models\GoogleCalendarEvent::factory())->create();
 
-    $googleCalendarService->deleteEvent($googleClientMock, $user, $user->googleCalendarEvents()->first()->google_event_id);
+    $googleCalendarService->deleteEvent($user, $user->googleCalendarEvents()->first()->google_event_id);
 
     // prettier-ignore
     expect($user->googleCalendarEvents()->where('google_event_id', 'fake_event_id')->exists())->toBeFalse();

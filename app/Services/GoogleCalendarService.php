@@ -26,13 +26,12 @@ class GoogleCalendarService
         );
     }
 
-    public function createEvent(Google_Client $client, User $user, array $eventData): GoogleCalendarEvent
+    public function createEvent(User $user, array $eventData): GoogleCalendarEvent
     {
         $startDateTime = $eventData['start'];
         $endDateTime = $eventData['end'];
 
         $event = new Google_Service_Calendar_Event([
-            'calendar_id' => $eventData['calendar_id'] ?? 'primary',
             'summary' => $eventData['summary'],
             'description' => $eventData['description'],
             'start' => [
@@ -44,7 +43,7 @@ class GoogleCalendarService
                 'timeZone' => $endDateTime->getTimezone()->getName(),
             ],
             'reminders' => [
-                'useDefault' => True,
+                'useDefault' => false,
                 'overrides' => [
                     ['method' => 'popup', 'minutes' => 10],
                 ],
@@ -63,7 +62,7 @@ class GoogleCalendarService
         ]);
     }
 
-    public function deleteEvent(Google_Client $client, User $user, string $googleEventId): void
+    public function deleteEvent(User $user, string $googleEventId): void
     {
         $googleCalendarEvent = $user->googleCalendarEvents()->where('google_event_id', $googleEventId)->first();
 
